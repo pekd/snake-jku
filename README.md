@@ -46,3 +46,16 @@ Unfortunately it was not possible to implement *all* features I wanted
 to implement. The broken RAM means it's impossible to generate
 interrupts, and therefore it's impossible to use a timer. That's the
 reason why the snake doesn't move on its own unless you press a key.
+
+Photos
+-----
+
+![snake](https://raw.githubusercontent.com/pekd/snake-jku/master/photos/snake.jpg)
+
+![snake screen](https://raw.githubusercontent.com/pekd/snake-jku/master/photos/screen.jpg)
+
+![ADM-3A](https://raw.githubusercontent.com/pekd/snake-jku/master/photos/adm-3a.jpg)
+
+![PDP-11/03-L with ADM-3A](https://raw.githubusercontent.com/pekd/snake-jku/master/photos/pdp-11.jpg)
+
+![playing snake](https://raw.githubusercontent.com/pekd/snake-jku/master/photos/playing.jpg)
