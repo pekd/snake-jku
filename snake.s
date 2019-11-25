@@ -1,0 +1,805 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; SNAKE (LSI-11 VERSION WITH BROKEN RAM)                             ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+FIELD_WIDTH	=	#116			; 78 COLUMNS
+FIELD_HEIGHT	=	#24			; 20 LINES
+
+DIR_LEFT	=	#0
+DIR_RIGHT	=	#1
+DIR_UP		=	#2
+DIR_DOWN	=	#3
+
+FOOD_TYPE_CNT	=	#4
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		.ORG	4000
+
+_START:		CLN
+		BPL	INIT0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+DATA:		.WORD	177160			; OFFSET 0
+		.WORD	200			; OFFSET 2
+		.WORD	1376			; OFFSET 4
+		.WORD	33			; OFFSET 6
+		.WORD	121			; OFFSET 10
+		.WORD	161			; OFFSET 12
+		.WORD	112			; OFFSET 14
+		.WORD	152			; OFFSET 16
+		.WORD	113			; OFFSET 20
+		.WORD	153			; OFFSET 22
+		.WORD	110			; OFFSET 24
+		.WORD	150			; OFFSET 26
+		.WORD	114			; OFFSET 30
+		.WORD	154			; OFFSET 32
+		.WORD	122			; OFFSET 34
+		.WORD	162			; OFFSET 36
+		.WORD	0			; OFFSET 40 ; DIR_LEFT
+		.WORD	1			; OFFSET 42 ; DIR_RIGHT
+		.WORD	2			; OFFSET 44 ; DIR_UP
+		.WORD	3			; OFFSET 46 ; DIR_DOWN
+		.WORD	177000			; OFFSET 50 ; 177400 << 1
+		.WORD	177340			; OFFSET 52 ; 177560 << 1
+		.WORD	75			; OFFSET 54
+		.WORD	37			; OFFSET 56
+REGISTERS:	.WORD	0			; OFFSET 60
+		.WORD	0			; OFFSET 62
+		.WORD	GENERATEFOOD		; OFFSET 64
+		.WORD	0			; OFFSET 66
+		.WORD	0			; OFFSET 70
+		.WORD	24			; OFFSET 72
+		.WORD	0			; OFFSET 74
+		.WORD	0			; OFFSET 76
+		.WORD	46			; OFFSET 100
+		.WORD	12			; OFFSET 102
+CURSORT0:	.WORD	0			; OFFSET 104
+		.WORD	4			; OFFSET 106
+		.WORD	105			; OFFSET 110
+		.WORD	53			; OFFSET 112
+		.WORD	55			; OFFSET 114
+		.WORD	116			; OFFSET 116
+DRAWBORDERT0:	.WORD	0			; OFFSET 120
+		.WORD	120			; OFFSET 122
+		.WORD	32			; OFFSET 124
+		.WORD	41			; OFFSET 126
+		.WORD	27			; OFFSET 130
+		.WORD	52			; OFFSET 132
+		.WORD	15			; OFFSET 134
+PUTCT0:		.WORD	0			; OFFSET 136
+		.WORD	40			; OFFSET 140
+		.WORD	14			; OFFSET 142
+		.WORD	16			; OFFSET 144
+		.WORD	17			; OFFSET 146
+		.WORD	30071			; OFFSET 150
+		.WORD	5			; OFFSET 152
+		.WORD	6			; OFFSET 154
+		.WORD	60			; OFFSET 156
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+RNG:		.WORD	0			; OFFSET 160
+
+SCORE:		.WORD	0			; OFFSET 162
+LASTSCORE:	.WORD	0			; OFFSET 164
+POS_X:		.WORD	0			; OFFSET 166
+POS_Y:		.WORD	0			; OFFSET 170
+DIRECTION:	.WORD	0			; OFFSET 172
+ISOVER:		.WORD	0			; OFFSET 174
+
+; CURRENT FOOD
+FOOD:		.WORD	0			; OFFSET 176
+FOOD_X:		.WORD	0			; OFFSET 200
+FOOD_Y:		.WORD	0			; OFFSET 202
+
+; FOOD DEFINITIONS
+FOOD_TYPES:	".xo$"				; OFFSET 204
+FOOD_SCORES:	.WORD	1			; OFFSET 212
+		.WORD	3			; OFFSET 214
+		.WORD	5			; OFFSET 216
+		.WORD	12			; OFFSET 220
+
+; OFFSETS
+		.WORD	4210			; OFFSET 222	#FOOD_TYPES
+		.WORD	4216			; OFFSET 224	#FOOD_SCORES
+		.WORD	4252			; OFFSET 226	#WELCOME
+		.WORD	4274			; OFFSET 230	#BYUNKNOWN
+		.WORD	4310			; OFFSET 232	#GAMEOVERTEXT
+		.WORD	4322			; OFFSET 234	#EXITWITHESC
+		.WORD	4346			; OFFSET 236	#RESTARTWITHR
+		.WORD	4366			; OFFSET 240	#SCORETEXT
+
+TAILSIZE:	.WORD	0			; OFFSET 242
+TAILOFF:	.WORD	10000			; OFFSET 244
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; STRINGS
+WELCOME:	; "Welcome to snake!"
+		.WORD	145256
+		.WORD	143330
+		.WORD	155336
+		.WORD	40312
+		.WORD	157350
+		.WORD	163100
+		.WORD	141334
+		.WORD	145326
+		.WORD	102
+BYUNKNOWN:	; "by unknown"
+		.WORD	171304
+		.WORD	165100
+		.WORD	153334
+		.WORD	157334
+		.WORD	156356
+		.WORD	0
+GAMEOVERTEXT:	; "GAME OVER!"
+		.WORD	101216
+		.WORD	105232
+		.WORD	117100
+		.WORD	105254
+		.WORD	244
+EXITWITHESC:	; "Exit with ESC or Q"
+		.WORD	170212
+		.WORD	164322
+		.WORD	167100
+		.WORD	164322
+		.WORD	40320
+		.WORD	123212
+		.WORD	40206
+		.WORD	162336
+		.WORD	121100
+		.WORD	0
+RESTARTWITHR:	; "Restart with R"
+		.WORD	145244
+		.WORD	164346
+		.WORD	162302
+		.WORD	40350
+		.WORD	151356
+		.WORD	150350
+		.WORD	122100
+		.WORD	0
+SCORETEXT:	; "Score: "
+		.WORD	143246
+		.WORD	162336
+		.WORD	72312
+		.WORD	100
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+OGENERATEFOOD:	.WORD	GENERATEFOOD
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INIT0:		CLR	R0
+		INC	R0
+		MUL	R0,	#4004
+		MOV	R1,	R3		; INITIALIZE CONST PTR
+
+		MOV	4(R3),	SP		; INITIALIZE STACK (1376)
+
+		; LOAD R5 WITH IO ADDRESS (177560)
+		MOV	0(R3),	R5		; R5 = 177160
+		MOV	2(R3),	R0		; R0 =    200
+		ROL	R0			; R0 =    400
+		BIS	R0,	R5		; R5 = 177560
+
+		; LOAD GLOBAL DATA POINTER INTO R2
+		MOV	R3,	R2
+
+		; JSR	R3,	VTCLEAR		; CLEAR SCREEN
+		NOP
+		NOP
+
+		JMP	RESTART
+
+WAITINPUT:	BIT	2(R3),	(R5)
+		BNE	HASINPUT
+		CLN
+		BPL	WAITINPUT
+HASINPUT:	MOV	52(R3),	R0		; R1 = 177560 << 1
+		SEC
+		ROR	R0			; R0 = 177560
+		MOVB	2(R0),	R0
+
+		CMP	14(R3),	R0		; 'J'
+		BNE	WAITINPUT0
+		CLN
+		BPL	HANDLEDOWN
+WAITINPUT0:	CMP	16(R3),	R0		; 'j'
+		BNE	WAITINPUT1
+HANDLEDOWN:	MOV	46(R3), 172(R2)		; DIRECTION = DIR_DOWN
+		JMP	STEP			; STEP()
+
+WAITINPUT1:	CMP	20(R3),	R0		; 'K'
+		BNE	WAITINPUT2
+		CLN
+		BPL	HANDLEUP
+WAITINPUT2:	CMP	22(R3),	R0		; 'k'
+		BNE	WAITINPUT3
+HANDLEUP:	MOV	44(R3), 172(R2)		; DIRECTION = DIR_UP
+		JMP	STEP			; STEP()
+
+WAITINPUT3:	CMP	24(R3),	R0		; 'H'
+		BNE	WAITINPUT4
+		CLN
+		BPL	HANDLERIGHT
+WAITINPUT4:	CMP	26(R3),	R0		; 'h'
+		BNE	WAITINPUT5
+HANDLERIGHT:	MOV	42(R3), 172(R2)		; DIRECTION = DIR_RIGHT
+		JMP	STEP			; STEP()
+
+WAITINPUT5:	CMP	30(R3),	R0		; 'L'
+		BNE	WAITINPUT6
+		CLN
+		BPL	HANDLELEFT
+WAITINPUT6:	CMP	32(R3),	R0		; 'l'
+		BNE	WAITINPUT7
+HANDLELEFT:	MOV	40(R3), 172(R2)		; DIRECTION = DIR_LEFT
+		JMP	STEP			; STEP()
+
+WAITINPUT7:	CMP	34(R3),	R0		; 'R'
+		BNE	WAITINPUT8
+		JMP	RESTART
+WAITINPUT8:	CMP	36(R3),	R0		; 'r'
+		BNE	WAITINPUT9
+		JMP	RESTART
+
+WAITINPUT9:	CMP	6(R3),	R0		; ESC
+		BNE	WAITINPUT10
+		HALT
+WAITINPUT10:	CMP	10(R3),	R0		; 'Q'
+		BNE	WAITINPUT11
+		HALT
+WAITINPUT11:	CMP	12(R3),	R0		; 'q'
+		BNE	WAITINPUT
+		HALT
+
+HANDLERESTART:	JMP	RESTART			; RESTART()
+
+;QUIT:		HALT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+OWAITINPUT:	.WORD	JWAITINPUT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; RESTART THE GAME
+RESTART:	JSR	R3,	INITIALIZE	; INITIALIZE()
+		JSR	R3,	JVTCLEAR	; VTCLEAR()
+
+		; DRAW HEADER
+		MOV	226(R2), R0
+		MOV	42(R2),	R1
+		JSR	R3,	JPRINTCENTER
+		MOV	42(R2),	R0
+		MOV	110(R2), R1
+		JSR	R3,	JVTSETCURSOR	; VTSETCURSOR(1, 69)
+		MOV	230(R2), R0
+		JSR	R3,	PRINT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		;; DRAW BORDER
+		MOV	44(R2),	R0
+		MOV	42(R2),	R1
+		JSR	R3,	JVTSETCURSOR	; VTSETCURSOR(2, 1)
+
+		; DRAW HORIZONTAL LINE
+		MOV	112(R2), R0
+		JSR	R3,	PUTC		; PUTC('+')
+		MOV	114(R2), R0		; R0 = '-'
+		MOV	116(R2), R1
+DRAWLINE1:	JSR	R3,	PUTC		; PUTC('-')
+		DEC	R1
+		BNE	DRAWLINE1
+		MOV	112(R2), R0
+		JSR	R3,	PUTC		; PUTC('+')
+
+		MOV	46(R2),	120(R2)		; i = 3
+DRAWBORDER1:	CMP	120(R2), #27		; IF(I >= 23)
+		BGE	DRAWBORDER2		;     GOTO END
+		MOV	120(R2), R0
+		MOV	42(R2),	R1
+		JSR	R3,	JVTSETCURSOR	; VTSETCURSOR(i, 1)
+		MOV	126(R2), R0
+		JSR	R3,	PUTC		; PUTC('!')
+		MOV	120(R2), R0
+		MOV	122(R2), R1
+		JSR	R3,	JVTSETCURSOR	; VTSETCURSOR(i, 80)
+		MOV	126(R2), R0
+		JSR	R3,	PUTC		; PUTC('!')
+		INC	120(R2)			; I++
+		CLN
+		BPL	DRAWBORDER1		; GOTO LOOP
+
+DRAWBORDER2:	MOV	130(R2), R0
+		MOV	42(R2),	R1
+		JSR	R3,	JVTSETCURSOR	; VTSETCURSOR(23, 1)
+
+		; DRAW HORIZONTAL LINE
+		MOV	112(R2), R0
+		JSR	R3,	PUTC		; PUTC('+')
+		MOV	114(R2), R0		; R0 = '-'
+		MOV	116(R2), R1
+DRAWLINE2:	JSR	R3,	PUTC		; PUTC('-')
+		DEC	R1
+		BNE	DRAWLINE2
+		MOV	112(R2), R0
+		JSR	R3,	PUTC		; PUTC('+')
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+		JMP	@64(R2)			; GENERATEFOOD()
+
+JVTCLEAR:	JMP	VTCLEAR
+JPRINTCENTER:	JMP	JPRINTCENTER0
+JVTSETCURSOR:	JMP	VTSETCURSOR
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; INITIALIZE THE GAME
+INITIALIZE:	MOV	100(R2), 166(R2)	; POS_X = COL 38 = CNTR
+		MOV	102(R2), 170(R2)	; POS_Y = LINE 12 = CNT
+		MOV	42(R2),	242(R2)		; TAILSIZE = 1
+		MOV	244(R2), R0
+		MOV	100(R2), 0(R0)		; TAIL.X = POS_X
+		MOV	102(R2), 2(R0)		; TAIL.Y = POS_Y
+		MOV	40(R2),	172(R2)		; DIRECTION = DIR_LEFT
+		CLR	162(R2)			; SCORE = 0
+		CLR	164(R2)
+		DEC	164(R2)			; LASTSCORE = -1
+		CLR	174(R2)			; ISOVER = 0
+		RTS	R3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; GENERATE FOOD
+GENERATEFOOD:	JSR	R3,	RAND
+		MOV	R0,	R1
+		CLR	R0
+		DIV	R0,	#FIELD_WIDTH	; R1 = RAND() % FLD_W
+		MOV	R1,	200(R2)
+		JSR	R3,	RAND
+		MOV	R0,	R1
+		CLR	R0
+		DIV	R0,	#FIELD_HEIGHT	; R1 = RAND() % FLD_H
+		MOV	R1,	202(R2)
+
+		; CHECK IF FOOD WAS GENERATED AT POS
+		CMP	200(R2),166(R2)		; IF(FOOD_X != POS_X)
+		BNE	GENERATEFOOD1		;     GOTO CHECK
+		CMP	202(R2), 170(R2)		; IF(FOOD_Y == POS_Y)
+		BNE	GENERATEFOOD1		;     GOTO BEGIN
+		CLN
+		BPL	GENERATEFOOD
+
+GENERATEFOOD1:	; CHECK TAIL
+		MOV	242(R2), 60(R2)		; I = TAILSIZE
+		MOV	244(R2), R0		; T = TAIL
+		CMP	242(R2), #0		; IF(TAILSIZE == 0)
+		BNE	GENERATEFOOD2		;     GOTO END
+		CLN
+		BPL	GENERATEFOOD4
+GENERATEFOOD2:	CMP	200(R2), 0(R0)		; IF(FOOD_X != T->X)
+		BNE	GENERATEFOOD3		;     CONTINUE
+		CMP	202(R2), 2(R0)		; IF(FOOD_Y == T->Y)
+		BNE	GENERATEFOOD3		;     GOTO BEGIN
+		CLN
+		BPL	GENERATEFOOD
+GENERATEFOOD3:	ADD	106(R2), R0		; T++
+		DEC	60(R2)
+		BNE	GENERATEFOOD2
+
+GENERATEFOOD4:	JSR	R3,	RAND
+		MOV	R0,	R1
+		CLR	R0
+		DIV	R0,	#FOOD_TYPE_CNT	; RAND() % FOOD_TYPE_CNT
+		MOV	R1,	176(R2)
+
+		MOV	200(R2), R0
+		MOV	202(R2), R1
+		JSR	R3,	JCURSOR		; CURSOR(FOOD_X, FOOD_Y)
+		MOV	222(R2), R0
+		ADD	176(R2), R0
+		MOVB	(R0),	R0
+		JSR	R3,	JPUTC		; PUTC(FOOD_TYPES[FOOD])
+
+		JMP	UPDATE
+
+JPRINTCENTER0:	JMP	PRINTCENTER
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; UPDATE GAME
+UPDATE:		;CMP	SCORE,	LASTSCORE
+		;BEQ	UPDATE1
+		;MOV	SCORE,	LASTSCORE
+		;MOV	#1,	R0
+		;MOV	R0,	R1
+		;JSR	R3,	VTSETCURSOR	; VTSETCURSOR(1, 1)
+		;MOV	#SCORETEXT, R0
+		;JSR	R3,	PRINT		; PRINT(SCORETEXT)
+		;MOV	SCORE,	R0
+		;JSR	R3,	PUTN		; PUTN(SCORE)
+
+;UPDATE1:	MOV	166(R2), R0
+UPDATE1:	MOV	166(R2), R0
+		MOV	170(R2), R1
+		JSR	R3,	JCURSOR		; CURSOR(POS_X, POS_Y)
+		JMP	@OWAITINPUT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+JCURSOR:	JMP	JCURSOR0
+JPUTC:		JMP	JPUTC0
+
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+		HALT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; STEP
+STEP:		CMP	174(R2), #0		; IF(ISOVER)
+		BNE	UPDATE			;     RETURN
+
+		; DRAW '*' AT OLD HEAD POSITION
+		CMP	242(R2), #1
+		BGT	STEPB0
+		CLN
+		BPL	STEP0
+STEPB0:		MOV	166(R2), R0
+		MOV	170(R2), R1
+		JSR	R3,	JCURSOR0	; CURSOR(POS_X, POS_Y)
+		MOV	132(R2), R0
+		JSR	R3,	PUTC		; PUTC('*')
+
+		; SWITCH(DIRECTION)
+STEP0:		CMP	172(R2), #DIR_UP	; CASE DIR_UP:
+		BNE	STEP1
+		DEC	170(R2)			; POS_Y--
+		BPL	STEP4			; IF(POS_Y >= 0) BREAK
+		MOV	72(R2),	POS_Y
+		DEC	170(R2)			; POS_Y = FLD_HEIGHT - 1
+		JMP	STEP4			; BREAK
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+JCURSOR0:	JMP	JCURSOR1
+JPUTC0:		JMP	PUTC
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+STEP1:		CMP	172(R2), #DIR_DOWN	; CASE DIR_DOWN:
+		BNE	STEP2
+		INC	170(R2)			; POS_Y++
+		CMP	170(R2), #FIELD_HEIGHT	; IF(POS_Y != FLD_HEIGHT)
+		BNE	STEP4			;     BREAK
+		CLR	170(R2)			; POS_Y = 0
+		JMP	STEP4			; BREAK
+
+STEP2:		CMP	172(R2), #DIR_LEFT	; CASE DIR_LEFT
+		BNE	STEP3
+		INC	166(R2)			; POS_X++
+		CMP	166(R2), #FIELD_WIDTH	; IF(POS_X != FLD_WIDTH)
+		BNE	STEP4			;     BREAK
+		CLR	166(R2)			; POS_X = 0
+		JMP	STEP4			; BREAK
+
+STEP3:		CMP	172(R2), #DIR_RIGHT	; CASE DIR_RIGHT
+		BNE	STEP4
+		DEC	166(R2)			; POS_X--
+		BPL	STEP4			; IF(POS_X >= 0) BREAK
+		MOV	116(R2), 166(R2)
+		DEC	166(R2)			; POS_X = FLD_WIDTH - 1
+
+STEP4:		; CHECK FOR COLLISION
+		MOV	242(R2), 70(R2)		; R4 = TAILSIZE
+		CMP	70(R2), #0
+		BNE	STEPB4
+		CLN
+		BPL	STEP7
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+JCURSOR1:	JMP	CURSOR
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+STEPB4:		MOV	244(R2), R0		; T = TAIL
+STEP5:		CMP	166(R2), 0(R0)		; IF(POS_X != T->X)
+		BNE	STEP6			;     CONTINUE
+		CMP	170(R2), 2(R0)		; IF(POS_Y != T->Y)
+		BNE	STEP6			;     CONTINUE
+		JMP	GAMEOVER		; GAMEOVER()
+STEP6:		ADD	106(R2), R0		; T++
+		DEC	70(R2)
+		BNE	STEP5		; LOOP
+
+STEP7:		; REMOVE OLD TAIL FROM SCREEN
+		MOV	244(R2), R1
+		MOV	0(R1),	R0
+		MOV	2(R1),	R1
+		JSR	R3,	CURSOR		; CURSOR(TAIL.X, TAIL.Y)
+		MOV	140(R2), R0
+		JSR	R3,	PUTC		; PUTC(' ')
+
+STEP8:		; UPDATE TAIL
+		MOV	242(R2), R0
+		MOV	244(R2), R1		; T = TAIL
+
+STEP9:		MOV	4(R1),	0(R1)		; T[1].X = T->X
+		MOV	6(R1),	2(R1)		; T[1].Y = T->Y
+		ADD	106(R2), R1		; T++
+		DEC	R0
+		BNE	STEP9
+
+		; SET TAIL POSITION
+		MOV	242(R2), R0
+		DEC	R0
+		MUL	R0,	#4
+		ADD	244(R2), R1		; T = &TAIL[TAILSIZE - 1]
+		MOV	166(R2), 0(R1)		; T->X = POS_X
+		MOV	170(R2), 2(R1)		; T->Y = POS_Y
+
+STEP10:		; CLEAR SCREEN AT HEAD POSITION
+		MOV	166(R2), R0
+		MOV	170(R2), R1
+		JSR	R3,	CURSOR
+		MOV	140(R2), R0
+		JSR	R3,	JPUTC1		; PUTC(' ')
+
+		; FOOD?
+		CMP	166(R2), 200(R2)	; IF(POS_X != FOOD_X)
+		BNE	STEP11			;     RETURN
+		CMP	170(R2), 202(R2)	; IF(POS_Y != FOOD_Y)
+		BNE	STEP11			;     RETURN
+
+STEP12:		; UPDATE SCORE
+		MOV	176(R2), R0
+		ROL	R0
+		ADD	224(R2), R0
+		ADD	(R0),	162(R2)		; SCORE += SCORES[FOOD]
+
+		; APPEND TAIL
+		MOV	242(R2), R0
+		MUL	R0,	#4
+		ADD	244(R2), R1		; T = &TAIL[TAILSIZE]
+		INC	242(R2)
+
+		MOV	166(R2), 0(R1)		; T->X = POS_X
+		MOV	170(R2), 2(R1)		; T->X
+
+		; GENERATE NEW FOOD
+		JMP	@64(R2)			; GENERATEFOOD()
+STEP11:		JMP	UPDATE
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; GAME OVER
+GAMEOVER:	MOV	42(R2),	174(R2)		; ISOVER = 1
+
+		; PRINTCENTER(GAMEOVERTEXT, 12)
+		MOV	232(R2), R0
+		MOV	142(R2), R1
+		JSR	R3,	PRINTCENTER
+
+		; PRINTCENTER(EXITWITHESC, 14)
+		MOV	234(R2), R0
+		MOV	144(R2), R1
+		JSR	R3,	PRINTCENTER
+
+		; PRINTCENTER(RESTARTWITHR, 15)
+		MOV	236(R2), R0
+		MOV	146(R2), R1
+		JSR	R3,	PRINTCENTER
+		JMP	UPDATE
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; SET CURSOR TO GAME FIELD POSITION (R0 = X, R1 = Y)
+CURSOR:		ADD	44(R2),	R0
+		ADD	46(R2),	R1
+		MOV	R0,	104(R2)
+		MOV	R1,	R0
+		MOV	104(R2), R1
+		JMP	VTSETCURSOR
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; GENERATE RANDOM NUMBER
+RAND:		MOV	160(R2), R0
+		MUL	R0,	#47155		; RNG *= 20077
+		ADD	150(R2), R1		; RNG += 12345
+		MOV	R1,	160(R2)
+		MOV	R1,	R0		; RETURN RNG
+		RTS	R3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+JPUTC1:		JMP	JPUTC2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; SCREEN MANAGEMENT
+
+;; CLEAR SCREEN
+VTCLEAR:	MOV	124(R2), R0
+		JMP	JPUTC2			; 0x1A
+
+;; SET CURSOR TO R0, R1
+VTSETCURSOR:	MOV	R0,	60(R2)
+		MOV	R1,	62(R2)
+		; LOAD IO REGISTER NAME
+		MOV	52(R2),	R0
+		SEC
+		ROR	R0
+
+VTSETCURSOR1:	CMPB	4(R0),	#0
+		BPL	VTSETCURSOR1
+		MOVB	6(R2),	6(R5)		; PUTC(ESC)
+
+VTSETCURSOR2:	CMPB	4(R0),	#0
+		BPL	VTSETCURSOR2
+		MOV	54(R2),	6(R5)		; PUTC('=')
+
+		ADD	56(R2),	60(R2)		; R0 = LINE + 0x20 - 1
+VTSETCURSOR3:	CMPB	4(R0),	#0
+		BPL	VTSETCURSOR3
+		MOV	60(R2),	6(R5)
+
+		ADD	56(R2),	62(R2)		; R0 = COL + 0x20 - 1
+VTSETCURSOR4:	CMPB	4(R0),	#0
+		BPL	VTSETCURSOR4
+		MOV	62(R2),	6(R5)
+
+		RTS	R3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+STRLEN:		MOV	R0,	R1
+STRLENLOOP:	CMPB	(R0)+,	#0
+		BNE	STRLENLOOP
+		DEC	R0
+		SUB	R1,	R0
+		RTS	R3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+JPUTC2:		JMP	PUTC
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PRINTCENTER(R0 = TEXT, R1 = LINE)
+PRINTCENTER:	MOV	R0,	74(R2)
+		MOV	R1,	76(R2)
+
+		; STRLEN
+		MOV	R0,	R1
+PRINTCENTER0:	CMPB	(R0)+,	#0
+		BNE	PRINTCENTER0
+		DEC	R0
+		SUB	R1,	R0		; R0 = STRLEN(R0)
+		; END STRLEN
+
+		COM	R0
+		INC	R0
+		ADD	122(R2), R0		; R0 = 120 - STRLEN(TEXT)
+		ASR	R0			; R0 = START / 2
+		MOV	R0,	R1		; R1 = COLUMN
+		INC	R1			; COLUMNS START WITH 1
+		MOV	76(R2),	R0		; R0 = LINE
+
+		; VTSETCURSOR
+PVTSETCURSOR:	MOV	R0,	60(R2)
+		MOV	R1,	62(R2)
+		; LOAD IO REGISTER NAME
+		MOV	52(R2),	R0
+		SEC
+		ROR	R0
+
+PVTSETCURSOR1:	CMPB	4(R0),	#0
+		BPL	PVTSETCURSOR1
+		MOVB	6(R2),	6(R5)		; PUTC(ESC)
+
+PVTSETCURSOR2:	CMPB	4(R0),	#0
+		BPL	PVTSETCURSOR2
+		MOV	54(R2),	6(R5)		; PUTC('=')
+
+		ADD	56(R2),	60(R2)		; R0 = LINE + 0x20 - 1
+PVTSETCURSOR3:	CMPB	4(R0),	#0
+		BPL	PVTSETCURSOR3
+		MOV	60(R2),	6(R5)
+
+		ADD	56(R2),	62(R2)		; R0 = COL + 0x20 - 1
+PVTSETCURSOR4:	CMPB	4(R0),	#0
+		BPL	PVTSETCURSOR4
+		MOV	62(R2),	6(R5)
+		; END VTSETCURSOR
+
+		MOV	74(R2),	R0		; R0 = STRING
+		JMP	PRINT			; PRINT(STRING)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; REGISTER ASSIGNMENT:
+;; R0 = TEMP
+;; R1 = MASK
+;; R2 = GLOBAL DATA
+;; R3 = RETURN ADDRESS
+;; R5 = IO
+;; 60(R2) = DATA
+PRINT:		MOV	R0,	60(R2)
+		MOV	50(R2),	R1
+		SEC
+		ROR	R1
+PRINT0:		MOVB	@60(R2), R0
+		BIC	R1,	R0
+		ROR	R0
+		CMPB	R0,	#0
+		BNE	PRWAIT
+		RTS	R3
+PRWAIT:		MOV	52(R2),	R0
+		SEC
+		ROR	R0
+		CMPB	4(R0),	#0
+		BPL	PRWAIT
+		CMPB	@60(R2), #12
+		BNE	PRDO
+		MOVB	134(R2), 6(R5)
+PRWAIT2:	CMPB	4(R0),	#0
+		BPL	PRWAIT2
+PRDO:		MOVB	@60(R2), R0
+		INC	60(R2)
+		BIC	R1,	R0
+		ROR	R0
+		MOV	R0,	6(R5)
+		CLN
+		BPL	PRINT0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PUTC:		MOVB	R0,	136(R2)
+		MOV	52(R2),	R0
+		SEC
+		ROR	R0
+PUTC1:		CMPB	4(R0), #0
+		BPL	PUTC1
+		MOVB	136(R2), 6(R5)
+		MOVB	136(R2), R0
+		RTS	R3
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; PRINT NUMBER IN R0 AS DECIMAL
+PUTN:		RTS	R3
+;PUTN:		MOV	R0,	R1
+;		MOV	#5,	R2
+;PUTNL:		CLR	R0
+;		DIV	R0,	#12
+;		MOV	R1,	-(SP)	; n % 10d
+;		MOV	R0,	R1
+;		SOB	R2,	PUTNL
+;
+;		; PRINT DIGITS
+;		MOV	#6,	R4
+;		CLR	R1
+;PUTN1:		DEC	R4		; leading zeros
+;		BEQ	PUTNZERO
+;		MOV	(SP)+,	R0	; load digit
+;		BEQ	PUTN1
+;
+;		; print number
+;PUTN2:		ADD	#60,	R0
+;		JSR	R3,	PUTC
+;
+;		DEC	R4
+;		BEQ	PUTNEND
+;		MOV	(SP)+,	R0
+;		BR	PUTN2
+;
+;PUTNEND:	RTS	R3
+;
+;PUTNZERO:	MOV	#60,	R0
+;		JMP	PUTC
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+JWAITINPUT:	MOV	240(R2), R0
+		JMP	56(R0)			; JMP WAITINPUT
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+END:		.WORD	0
